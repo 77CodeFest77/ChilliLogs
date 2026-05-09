@@ -1,13 +1,13 @@
-name: 🧠 Brainrot Rich Server Scanner
+name: 🧠 Brainrot Gist Scanner
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Кнопка для ручного запуска
+  workflow_dispatch:
 
 jobs:
   run-bot:
-    name: 🚀 Запуск Мониторинга
+    name: 🚀 Запуск Системы
     runs-on: ubuntu-latest
 
     steps:
@@ -23,27 +23,11 @@ jobs:
         run: |
           pip install discord.py-self requests
 
-      - name: 🌐 Проверка связи с Firebase
-        env:
-          FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
-        run: |
-          python -c "
-          import requests, os, json
-          url = os.getenv('FIREBASE_URL') + 'connection_test.json'
-          try:
-              # Пробуем отправить тестовый пинг в базу
-              r = requests.put(url, json={'status': 'connected', 'msg': 'GitHub Action is Live!'})
-              if r.status_code == 200:
-                  print('✅ Связь с Firebase установлена! База отвечает.')
-              else:
-                  print(f'⚠️ Ошибка базы: {r.status_code}. Проверь Rules в Firebase!')
-          except Exception as e:
-              print(f'❌ Не удалось подключиться к Firebase: {e}')
-          "
-
-      - name: 🛰️ Запуск бота в облаке
+      - name: 🛰️ Запуск мониторинга
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
         run: python bot.py
+
