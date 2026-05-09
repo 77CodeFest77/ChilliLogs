@@ -3,11 +3,11 @@ name: 🧠 Brainrot Firebase Scanner
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Чтобы можно было запустить вручную кнопкой
+  workflow_dispatch:
 
 jobs:
   run-bot:
-    name: 🚀 Запуск Мониторинга
+    name: 🚀 Мониторинг Каналов
     runs-on: ubuntu-latest
 
     steps:
@@ -23,9 +23,15 @@ jobs:
         run: |
           pip install discord.py-self requests
 
+      - name: 🔍 Проверка Конфигурации
+        run: |
+          echo "=== ПРОВЕРКА НАСТРОЕК ==="
+          echo "Target Channel ID: ${{ secrets.CHANNEL_ID }}"
+          if [ -z "${{ secrets.FIREBASE_URL }}" ]; then echo "❌ FIREBASE_URL NOT SET"; else echo "✅ FIREBASE_URL IS SET"; fi
+          echo "========================"
+
       - name: 🛰️ Запуск бота
         env:
-          # Передаем секреты из настроек GitHub в код бота
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
