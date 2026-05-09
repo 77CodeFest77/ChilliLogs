@@ -4,62 +4,43 @@ import requests
 import json
 import re
 
-# Загрузка секретов из GitHub
+# Настройки из секретов GitHub
 TOKEN = os.getenv('DISCORD_TOKEN')
-GIST_TOKEN = os.getenv('GIST_TOKEN')
-GIST_ID = os.getenv('GIST_ID')
 CHANNEL_ID = int(os.getenv('CHANNEL_ID'))
+# Твоя ссылка на Firebase (обязательно с /.json в конце)
+FIREBASE_URL = "https://serveraj-eb052-default-rtdb.firebaseio.com/.json"
 
-# Инициализация клиента (для discord.py-self)
 client = discord.Client()
 
 @client.event
 async def on_ready():
-    print(f"✅ Бот запущен!")
-    print(f"👤 Аккаунт: {client.user}")
-    print(f"📡 Мониторинг канала: {CHANNEL_ID}")
+    print(f"✅ Бот в сети: {client.user}")
 
 @client.event
 async def on_message(message):
-    # Фильтр по ID канала
     if message.channel.id == CHANNEL_ID:
-        
-        # Поиск JobId через регулярное выражение
+        # Ищем JobId в сообщении
         job_id_match = re.search(r'([a-f0-9\-]{36})', message.content)
         
         if job_id_match:
             job_id = job_id_match.group(1)
-            print(f"💎 Нашел JobId: {job_id}. Обновляю Gist...")
+            print(f"🔥 Найден ID: {job_id}. Отправляю в Firebase...")
             
-            url = f"https://api.github.com/gists/{GIST_ID}"
-            headers = {
-                "Authorization": f"token {GIST_TOKEN}",
-                "Accept": "application/vnd.github.v3+json"
-            }
-            
-            # Данные для записи в файл
-            content_data = {
-                "jobId": job_id,
-                "info": "Rich Server Found",
-                "time": str(message.created_at)
-            }
-            
+            # Данные для базы
             payload = {
-                "files": {
-                    "servers.json": {
-                        "content": json.dumps(content_data, indent=4)
-                    }
-                }
+                "jobId": job_id,
+                "time": str(message.created_at.strftime("%H:%M:%S")),
+                "server_text": message.content[:50]
             }
             
             try:
-                r = requests.patch(url, headers=headers, json=payload)
+                # В Firebase используем PUT, чтобы перезаписывать данные
+                r = requests.put(FIREBASE_URL, json=payload)
                 if r.status_code == 200:
-                    print("🚀 Gist успешно обновлен!")
+                    print("🚀 Firebase успешно обновлен!")
                 else:
-                    print(f"⚠️ Ошибка API: {r.status_code}")
+                    print(f"⚠️ Ошибка Firebase: {r.status_code}")
             except Exception as e:
                 print(f"❌ Ошибка: {e}")
 
-# Запуск бота (без аргумента bot=False, так как библиотека сама всё поймет)
 client.run(TOKEN)
