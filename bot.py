@@ -1,46 +1,47 @@
 import discord
 import os
 import requests
-import json
 import re
 
-# Настройки из секретов GitHub
 TOKEN = os.getenv('DISCORD_TOKEN')
-CHANNEL_ID = int(os.getenv('CHANNEL_ID'))
-# Твоя ссылка на Firebase (обязательно с /.json в конце)
-FIREBASE_URL = "https://serveraj-eb052-default-rtdb.firebaseio.com/.json"
+FIREBASE_URL = os.getenv('FIREBASE_URL')
+TARGET_CHANNEL_ID = int(os.getenv('CHANNEL_ID'))
 
-client = discord.Client()
-
-@client.event
-async def on_ready():
-    print(f"✅ Бот в сети: {client.user}")
-
-@client.event
-async def on_message(message):
-    if message.channel.id == CHANNEL_ID:
-        # Ищем JobId в сообщении
-        job_id_match = re.search(r'([a-f0-9\-]{36})', message.content)
+class MyClient(discord.Client):
+    async def on_ready(self):
+        print(f"✅ Бот запущен: {self.user}")
         
-        if job_id_match:
-            job_id = job_id_match.group(1)
-            print(f"🔥 Найден ID: {job_id}. Отправляю в Firebase...")
+        # Проверяем, видит ли бот нужный канал
+        channel = self.get_channel(TARGET_CHANNEL_ID)
+        if channel:
+            print(f"🎯 ЦЕЛЬ НАЙДЕНА: #{channel.name} (ID: {TARGET_CHANNEL_ID})")
+            print("🚀 Ожидаю сообщения с JobID...")
+        else:
+            print(f"❌ ОШИБКА: Канал с ID {TARGET_CHANNEL_ID} не найден!")
+            print("Проверь, есть ли у твоего аккаунта доступ к этому каналу.")
+
+    async def on_message(self, message):
+        if message.channel.id != TARGET_CHANNEL_ID:
+            return
+
+        if message.author == self.user:
+            return
+
+        # Ищем JobID (формат 8-4-4-4-12)
+        match = re.search(r'([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})', message.content.lower())
+        
+        if match:
+            job_id = match.group(1)
+            print(f"💎 Нашел сервер! ID: {job_id}")
             
-            # Данные для базы
             payload = {
                 "jobId": job_id,
-                "time": str(message.created_at.strftime("%H:%M:%S")),
-                "server_text": message.content[:50]
+                "time": str(message.created_at.strftime("%H:%M:%S"))
             }
             
-            try:
-                # В Firebase используем PUT, чтобы перезаписывать данные
-                r = requests.put(FIREBASE_URL, json=payload)
-                if r.status_code == 200:
-                    print("🚀 Firebase успешно обновлен!")
-                else:
-                    print(f"⚠️ Ошибка Firebase: {r.status_code}")
-            except Exception as e:
-                print(f"❌ Ошибка: {e}")
+            r = requests.put(FIREBASE_URL, json=payload)
+            if r.status_code == 200:
+                print("🔥 Firebase обновлен!")
 
+client = MyClient()
 client.run(TOKEN)
